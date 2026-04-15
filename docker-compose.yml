@@ -1,0 +1,70 @@
+name: indigoai-assignment
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: indigoai-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: indigoai
+      POSTGRES_USER: indigoai
+      POSTGRES_PASSWORD: indigoai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indigoai -d indigoai"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: indigoai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: postgresql+psycopg2://indigoai:indigoai@postgres:5432/indigoai
+      UPLOAD_DIR: data/uploads
+      BACKEND_CORS_ORIGINS_RAW: http://localhost:8001,http://127.0.0.1:8001
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      EMBEDDING_MODEL: text-embedding-3-small
+      OPENAI_CHAT_MODEL: gpt-4o
+      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN}
+      MCP_URL: http://localhost:8000/mcp/mcp
+    volumes:
+      - ./backend:/app
+      - ./backend/data:/app/data
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: indigoai-frontend
+    ports:
+      - "8001:8001"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

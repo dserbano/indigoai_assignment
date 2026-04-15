@@ -1,0 +1,16 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+sqlalchemy==2.0.43
+pydantic==2.11.7
+pydantic-settings==2.10.1
+python-multipart==0.0.20
+pypdf==5.9.0
+mcp
+openai
+langchain
+langchain-openai
+httpx
+psycopg2-binary
+pgvector
+rank-bm25==0.2.2
+fastmcp
